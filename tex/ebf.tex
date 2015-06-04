@@ -41,6 +41,8 @@
 
 \begin{document}
 
+%==========================================================================================
+
 \setcounter{page}{0}
 {% \usebackgroundtemplate{\includegraphics[height=\paperheight]{phoenix}}
 \begin{frame}[plain]
@@ -52,50 +54,58 @@
 {\bf \LARGE \theme Empirical Bayesian Forests }
 
 \vskip 1cm
-Matt Taddy,  Chicago Booth
+Matt Taddy @  Chicago Booth
 
 \vskip .1cm
-with Chun-Sheng Chen, Jun Yu, and Mitch Wyle at eBay
-
-
-\vfill
-{\texttt{faculty.chicagobooth.edu/matt.taddy/research}}
+Chun-Sheng Chen, Jun Yu, and Mitch Wyle @ eBay Trust Science
 
 \end{center}
 \end{frame} }
 
+%==========================================================================================
+
+\begin{frame}
+{Outline}
+
+\begin{itemize}
+\item Decision Tree and Random Forests
+\item Bayesian Forests
+\item Empirical Bayesian Forests
+\item Experimental Result
+\end{itemize}
+
+\end{frame}
+
+%==========================================================================================
 
 \begin{frame}
 {What is a Decision Tree?}
 
-\includegraphics[width=4.25in]{../../bigdata/graphs/umbrella}
+{\bf Decision Tree} (a.k.a CART\footnote[frame]{CART: Classification And Regression Trees}) is a predictive model, which maps from observations ($\bf{X}$) to a conclusion ($Y$) using a series of rules.\\
+\vskip 0.5cm
+
+\textit{Example: Predict whether or not to bring an umbrella given the forecast and the current condition.}
+
+\vskip 0.5cm
+\includegraphics[width=3.50in]{../graphs/umbrella}
 
 
-\vskip .3cm
-\bk Tree-logic uses a series of steps to come to a conclusion.\\
- The trick is to have mini-decisions combine for good choices.
-\\ Each decision is a node, and the final prediction is a {\theme
-  leaf node}
+% The trick is to have mini-decisions combine for good choices.
+% Each decision is a node, and the final prediction is a {\theme
+%  leaf node}
 
 \end{frame}
 
+%==========================================================================================
 
 \begin{frame}
+{How to decide the variables to split on?}
 
-{\bf Decision Trees are a Regression Model}
-
-\sk
-You have inputs $\bm{x}$ {\gr (forecast, current conditions)} \\ and an output of
-interest $y$ {\gr (need for an umbrella)}.
-
-
-\sk 
 Based on previous data, the goal is to specify branches of \\ choices 
 that lead to good predictions in new scenarios.
 
 
 {In other words, you want to estimate a {\nv Tree Model}.}
-
 
 \sk
 \bk
@@ -108,197 +118,143 @@ Nodes have a parent-child structure: every node except the root has a parent, an
 
 \end{frame}
 
+%==========================================================================================
 
 \begin{frame}
+{How to construct the decision tree?}
 
-{\bf Decision trees are like a game of mousetrap}
-
-\vskip .25cm
-You drop your $\bm{x}$ covariates in at the top, and each decision node
-bounces you either left or right.  Finally, you end up in a {\theme leaf node} which contains the data subset defined by these decisions (splits).
-
-
-\begin{equation*}
-\begin{array}{ccccc}
-& &  \hskip -2.2cm x_i = 0 &&\\
-& & \hskip -2.3cm \swarrow ~~~\searrow &&\\
-&  \hskip -.8cm x_j = 2 & & \hskip -2.3cm \{\bm{x}: x_i>0\}&\\
-& \hskip -.7cm \swarrow~~~\searrow & & &\\
-\{\bm{x}: x_i \leq  0, x_j \leq  2\}& & \hskip -.5cm \{ \bm{x}: x_i \leq 0, x_j>2 \}& &
-\end{array}
-\end{equation*}
-
-\vskip .5cm
-The {\nv prediction rule} at each leaf (a class probability or predicted $\hat y$) is  the average of the sample $y$ values that ended up in that leaf.
-
-\end{frame}
-
-
-\begin{frame}
-
-Given a {\nv parent} set of data $\{\bm{x}_i,y_i\}_{i=1}^n$, the {\theme optimal split}
-is that location $x_{ij}$ on some dimension $j$ on some observation $i$,\\ so that the {\nv child} sets 
-\[
-\text{\rm{left}:}~\{\bm{x}_k,y_k:~x_{kj} \leq x_{ij}\}
-\text{~~and~~\rm{right}:}~\{\bm{x}_k,y_k:~x_{kj} > x_{ij}\}
-\]
-are as homogeneous in response $y$ as possible.
-
-\vskip .5cm
-For example, we will minimize the sum of squared errors \\
-\[
-\sum_{k \in \mathrm{left}} (y_k - \bar y_{\mathrm{left}})^2 + \sum_{k \in \mathrm{right}} (y_k - \bar y_{\mathrm{right}})^2
-\]
-for {\it regression trees}, or gini impurity  for {\it classification trees} \\(e.g., the sum across children `c' of $n_{\mathrm{c}}\bar y_{\mathrm{c}}(1-\bar y_{\mathrm{c}})$ if $y\in \{0,1\}$).
-
-\end{frame}
-
-\begin{frame}
-
-
-{\bf We estimate decision trees by being recursive and greedy}
-
-
-\vskip .5cm
 {\nv CART} grows the tree through a sequence of splits:
 
 \vskip .25cm
 \begin{itemize}
-\item Given any set (node) of data, you can find the {\theme optimal split} (the error minimizing split) and divide into two child sets.
-\item 
-We then look at each child set, and again find the optimal split to divide it into two homogeneous subsets.
+\item Given the data in a node, find the {\theme optimal split} (the error minimizing split) and divide data into two "child" nodes.
+\item The same process is applied to each "child" node (i.e. it is a recursive procedure).
 \item
-The children become  parents, and we look again for the optimal split on their new children (the grandchildren!).
+Splitting stops when CART detects no further gain can be made, or some pre-set stopping criterions (the size of the leaf nodes hits some minimum threshold) are met.
 \end{itemize}
-
-\vskip .25cm
-You stop splitting and growing when the size of the leaf nodes hits some minimum threshold (e.g., say no less than 10 obsv per leaf).
 
 \end{frame}
 
+%==========================================================================================
 
+%\begin{frame}
+%
+%Given a {\nv parent} set of data $\{\bm{x}_i,y_i\}_{i=1}^n$, the {\theme optimal split}
+%is that location $x_{ij}$ on some dimension $j$ on some observation $i$,\\ so that the {\nv child} sets 
+%\[
+%\text{\rm{left}:}~\{\bm{x}_k,y_k:~x_{kj} \leq x_{ij}\}
+%\text{~~and~~\rm{right}:}~\{\bm{x}_k,y_k:~x_{kj} > x_{ij}\}
+%\]
+%are as homogeneous in response $y$ as possible.
+%
+%\vskip .5cm
+%For example, we will minimize the sum of squared errors \\
+%\[
+%\sum_{k \in \mathrm{left}} (y_k - \bar y_{\mathrm{left}})^2 + \sum_{k \in \mathrm{right}} (y_k - \bar y_{\mathrm{right}})^2
+%\]
+%for {\it regression trees}, or gini impurity  for {\it classification trees} \\(e.g., the sum across children `c' of $n_{\mathrm{c}}\bar y_{\mathrm{c}}(1-\bar y_{\mathrm{c}})$ if $y\in \{0,1\}$).
+%
+%\end{frame}
 
+%==========================================================================================
+
+%\begin{frame}
+%{Decision trees are like a game of mousetrap}
+%
+%\vskip .25cm
+%You drop your $\bm{x}$ covariates in at the top, and each decision node
+%bounces you either left or right.  Finally, you end up in a {\theme leaf node} which contains the data subset defined by these decisions (splits).
+%
+%
+%\begin{equation*}
+%\begin{array}{ccccc}
+%& &  \hskip -2.2cm x_i = 0 &&\\
+%& & \hskip -2.3cm \swarrow ~~~\searrow &&\\
+%&  \hskip -.8cm x_j = 2 & & \hskip -2.3cm \{\bm{x}: x_i>0\}&\\
+%& \hskip -.7cm \swarrow~~~\searrow & & &\\
+%\{\bm{x}: x_i \leq  0, x_j \leq  2\}& & \hskip -.5cm \{ \bm{x}: x_i \leq 0, x_j>2 \}& &
+%\end{array}
+%\end{equation*}
+%
+%\vskip .5cm
+%The {\nv prediction rule} at each leaf (a class probability or predicted $\hat y$) is  the average of the sample $y$ values that ended up in that leaf.
+%
+%\end{frame}
+
+%==========================================================================================
 
 \begin{frame}
+{Nice properties of decision trees}
 
-
-{\bf  Trees are awesome}
-
-\vskip .25cm 
-They automatically learn non-linear response functions
-\\ and will discover interactions between variables.
+Decision trees automatically learn \textbf{non-linear} response functions and will discover \textbf{interactions} between variables.
 
 \vskip .25cm
-Example: Motorcycle Crash Test Dummy Data
+Example: Motorcycle Crash Test Data where $x$ is time from impact, $y$ is acceleration on the helmet.
 
-\sg
-$x$ is time from impact, $y$ is acceleration on the helmet.
-
-\vspace{-1cm}
+\vspace{-0.5cm}
 \begin{adjustwidth}{-.3in}{}
-\includegraphics[width=4.6in]{../graphs/MCtree}
+\includegraphics[width=4.3in]{../graphs/MCtree}
 \end{adjustwidth}
 
 \vskip -.75cm
 \end{frame}
 
+%==========================================================================================
 
 \begin{frame}
-
-{Unfortunately, it is tough to avoid overfit with CART:}
+{Random Forests}
 
 \vskip .1cm \bk
-Deep tree structure is so unstable that optimal depth is not easily chosen via cross validation, and there's no theory to fall back on.
+Unfortunately, CART has high variance and can overfit because deep tree structure is unstable.
 
 \vskip .5cm \bk
-Instead, we can average over a {\nv bootstrapped} sample of trees:  
-
+Instead, we can construct an ensemble of decision trees (Random Forests):
 \begin{itemize}
-\item repeatedly re-sample the data, {\nv with-replacement}, \\to get a `jittered' dataset of $n$ observations.
-\item for each resample, {\nv fit a CART tree}.
-\item when you want to predict $y$ for some $\bm{x}$, \\take the {\nv average} prediction from this forest of trees.
+\item {\nv Bootstrap} the original dataset by sampling with replacement.
+\item For each bootstrapped data, {\nv fit a CART tree}.
+\item For a testing data point $x$, take the {\nv average} prediction from this forest of trees.
 \end{itemize}
-Real structure that persists across datasets shows up in the average.  Noisy useless signals will average out to have no effect. 
 
-\sk
-{\bf \theme \hfill This is a Random Forest {\gr (RF)}}
 \end{frame}
 
 
-\begin{frame}
+%==========================================================================================
 
+\begin{frame}
+{Random Trees for the Motorcycle Data}
+
+\includegraphics[width=4.25in]{../graphs/motorcycle_example.png}
+
+\vskip .5cm
+\begin{itemize}
+\item If you fit to random subsets of the data, you get a slightly different tree each time.
+\item Averaging many trees yields a single [high quality] response surface. 
+\end{itemize}
+\end{frame}
+
+%=============================================================================
+
+\begin{frame}
+{Random Forests help}
 
 \begin{center}
-\includegraphics[width=.75\textwidth]{../graphs/MCtreedraw}
+\includegraphics[width=1.0\textwidth]{../graphs/rf_example.png}
 \end{center}
 
-\vskip -.25cm
-Fitting CART to sampled-with-replacement data is equivalent to randomly {\nv weighting} your observations in the deviance calculations. 
-
-\hfill {\gr (size proportional to weight in this picture)}.
+\vskip .5cm
+Real structure that persists across datasets shows up in the average.  Noisy useless signals will average out to have no effect. 
 
 \end{frame}
 
-\begin{frame}
-
-{\bf \theme Random Trees \bk for the Motorcycle Data}
-
-
-\vspace{-1cm}
-\includegraphics[width=4.25in]{../graphs/MCparticles}
-
-\vskip -.25cm\sg
-If you fit to random subsets of the data, \\\nv \hfill you get a slightly different
-tree each time.
-\vskip -.25cm
-\end{frame}
-
+%==========================================================================================
 
 \begin{frame}
+{Random Forests are awesome, BUT ...}
 
-{\bf  Model Averaging with \theme Random Forests}
-
-\vskip .25cm
-\includegraphics[width=4.35in]{../graphs/MCrf}
-
-\vskip .2cm\sg
-Averaging many trees yields a single
-[high quality] response surface. 
-
-\vskip -.2cm
-
-\end{frame}
-
-\begin{frame}
-
-{\bf Random Forests are really awesome}
-
-\vskip .25cm
-They have all the nice properties of trees, 
-while avoiding overfit.
-
-\vskip .25cm
-Unfortunately, search for {\it optimal splits} is expensive on Big  data.  
-
-And if one tree is costly, then  many is infeasible (you want many!).
-
-\vskip .75cm
-{\theme Sub-Sampling Forests:} for each tree, sample  without-replacement only as many observations as are easy to fit a single tree.
-
-\vskip .25cm
-{\nv Sadly, performance suffers: deep structure {\it needs} big samples.  }
-
-\vskip .25cm
-Think about a {\nv rare} data segment of 50 observations that all look and act the same (e.g., all users in some class commit fraud).  
-
-\vskip .1cm
-With 1/50 of the data, you'll never find this group.
-
-\end{frame}
-
-\begin{frame}
-
-{\bf Efficient Big Data analysis}
+\begin{itemize}
+\item Search for {\it optimal splits} is expensive on Big  data.  
+\item Sub-Sampling Forests hurts the performance because deep structure {\it needs} big samples. 
+\end{itemize}
 
 \vskip .5cm
 To cut computation without hurting performance, we need to think about what portions of the tree are {\theme hard} or {\nv easy} to learn.
@@ -306,14 +262,13 @@ To cut computation without hurting performance, we need to think about what port
 \vskip .25cm
 Once we figure this out,  we can use a little bit of the data to\\ learn the easy stuff and direct our full data at the hard stuff.
 
-\vskip .25cm
-FWIW this is the future for Big Data.
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
-{\bf Bayesian Forests}
+\begin{frame}
+{Bayesian Forests}
 
 \vskip .5cm
 Our framework for thinking about easy vs hard learning
@@ -331,6 +286,8 @@ The Bayesian/Random Forest represents your uncertainty about this optimal tree. 
 \vskip .5cm BFs and RFs are slightly different: a BF fits CART to randomly weighted data, and RF fits to randomly re-sampled data.\\  But you can think of an RF as an approximation to the BF.
 
 \end{frame}
+
+%==========================================================================================
 
 % \begin{frame}
 
@@ -375,10 +332,10 @@ The Bayesian/Random Forest represents your uncertainty about this optimal tree. 
 
 % \end{frame}
 
+%==========================================================================================
 
 \begin{frame}
-
-{\bf Theoretical trunk stability}
+{Theoretical trunk stability}
 
 \vskip .5cm
 
@@ -399,12 +356,10 @@ where $p$ is the number of possible split locations and $n$ the number of observ
 
 \end{frame}
 
+%==========================================================================================
+
 \begin{frame}
-
-{\bf California Housing Data}
-
-
-\vskip .5cm
+{California Housing Data}
 
 20k observations on median home prices in zip codes.
 
@@ -417,7 +372,10 @@ where $p$ is the number of possible split locations and $n$ the number of observ
 
 \end{frame}
 
+%==========================================================================================
+
 \begin{frame}
+{California Housing Data}
 
 \begin{columns}
 
@@ -439,11 +397,12 @@ where $p$ is the number of possible split locations and $n$ the number of observ
 \end{columns}
 
 
-\vskip 1cm
-~~~~Empirically and theoretically: trees are stable, at the trunk.
-\vskip -1cm
+\vskip 0.5cm
+\center{Empirically and theoretically: trees are stable, at the trunk.}
 
 \end{frame}
+
+%==========================================================================================
 
 \begin{frame}
 
@@ -472,8 +431,9 @@ This is classic Empirical Bayes: fix higher levels in a {\it hierarchical model}
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
+\begin{frame}
 
 Since the trunks are all the same for each tree in a full forest,
 our EBF looks nearly the same at a fraction of computational cost.
@@ -487,10 +447,10 @@ Here EBF and BF give nearly the same results.  {\it SSF does not.}
 
 \end{frame}
 
+%==========================================================================================
 
 \begin{frame}
-
-{\bf EBFs work all over the place}
+{EBFs work all over the place}
 
 \vskip .5cm
 \begin{minipage}{0.5\linewidth}
@@ -514,9 +474,10 @@ $\overline{\text{MCR}}$  & \% WTB & \\
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
-{\bf EBFs work all over the place}
+\begin{frame}
+{EBFs work all over the place}
 
 \vskip .5cm
 \begin{minipage}{0.5\linewidth}
@@ -540,9 +501,10 @@ $\overline{\text{RMSE}}$  & \% WTB & \\
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
-{\bf Choosing the trunk depth}
+\begin{frame}
+{Choosing the trunk depth}
 
 
 \vskip .5cm
@@ -572,26 +534,25 @@ A key point: we {\theme do not} think that EBFs are better than forests fit to a
 
 \end{frame}
 
+%==========================================================================================
+
 \begin{frame}
+{EBFs at eBay: predicting Defect / Bad Buyer Experiences}
 
+Defect/BBE include various complains from eBay buyers regarding a transaction, including item not received, significantly not as described, negative feedback, shipping delays, and etc.
 
-{\bf \theme EBFs at EBay: \bk predicting Bad Buyer Experiences}
+\vskip .7cm
+The defect model learns from seller's historical behaviors, and predicts the likelihood of a seller causing defects on eBay. \\Defect model score is fed an input to search rankings and demote sellers more likely to cause defects.
 
-\vskip .5cm
-A BBE could be receiving something that is `significantly not as described',
-or shipping delays, or any of many other problems.
-
-\vskip .5cm
-The models are updated frequently, and  information\\ about $\mathrm{p}(\text{BBE})$
-is an input to search rankings  and more.
-
-\vskip .2cm The best thing to improve predictions is more data.  \\With millions of daily transactions, there's little limit on data.
+\vskip .7cm 
+The best thing to improve predictions is more data.  \\With millions of daily transactions, there's little limit on data.
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
-{\bf EBFs at EBay}
+\begin{frame}
+{EBFs at eBay: predicting Defect / Bad Buyer Experiences}
 
 \vskip .5cm
 Full random forest runs take too long on full data \\(even using distributed tree algorithms).
@@ -610,9 +571,10 @@ separate locations corresponding to each branch.
 
 \end{frame}
 
-\begin{frame}
+%==========================================================================================
 
-{\bf EBFs at EBay}
+\begin{frame}
+{EBFs at eBay: predicting Defect / Bad Buyer Experiences}
 
 \vskip .5cm
 
@@ -629,20 +591,23 @@ If you already fit RFs and are hitting time/space constraints,\\ then an EBF is 
 
 \end{frame}
 
+%==========================================================================================
+
 \begin{frame}
 
-{\theme\bf  The key to big data} 
-
-\vskip .5cm Use plug-in estimates for the stuff that is easy to measure.
-
-\vskip .15cm Partition conditional on these plug-ins.
-
-\vskip .15cm   Direct the full data towards the stuff that is tough to learn.
+%{\theme\bf  The key to big data} 
+%
+%\vskip .5cm Use plug-in estimates for the stuff that is easy to measure.
+%
+%\vskip .15cm Partition conditional on these plug-ins.
+%
+%\vskip .15cm   Direct the full data towards the stuff that is tough to learn.
 
 \vskip 1.5cm
 \begin{center}
 \Huge
-Thanks!
+Thanks! \\
+Q \& A
 \end{center}
 
 \end{frame}
